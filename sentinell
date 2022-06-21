@@ -1,0 +1,182 @@
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+pip install textblob
+from textblob import TextBlob
+import nltk
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+import re
+%matplotlib inline
+import warnings
+warnings.filterwarnings("ignore")
+import os
+from nltk.tokenize import sent_tokenize, word_tokenize
+import nltk
+nltk.download('punkt')
+import re 
+nltk.download('stopwords')
+
+
+pd.set_option('display.max_columns',None)
+
+veri = pd.read_csv("GBcomments.csv",  error_bad_lines=False)
+
+veri.head()
+	video_id	comment_text	likes	replies
+0	jt2OHQh0HoQ	It's more accurate to call it the M+ (1000) be...	0	0
+1	jt2OHQh0HoQ	To be there with a samsung phone\n😂😂😂	1	0
+2	jt2OHQh0HoQ	Thank gosh, a place I can watch it without hav...	0	0
+3	jt2OHQh0HoQ	What happened to the home button on the iPhone...	0	0
+4	jt2OHQh0HoQ	Power is the disease.  Care is the cure.  Keep...	0	0
+
+
+veri.shape
+(718452, 4)
+
+veri.isnull().sum()
+video_id         0
+comment_text    28
+likes            0
+replies          0
+dtype: int64
+
+veri.dropna(inplace=True)
+
+veri.isnull().sum()
+video_id        0
+comment_text    0
+likes           0
+replies         0
+dtype: int64
+
+veri.shape
+(718424, 4)
+
+veri.nunique()
+video_id          1692
+comment_text    372844
+likes             1134
+replies            349
+dtype: int64
+
+
+veri.info()
+<class 'pandas.core.frame.DataFrame'>
+Int64Index: 718424 entries, 0 to 718451
+Data columns (total 4 columns):
+ #   Column        Non-Null Count   Dtype 
+---  ------        --------------   ----- 
+ 0   video_id      718424 non-null  object
+ 1   comment_text  718424 non-null  object
+ 2   likes         718424 non-null  int64 
+ 3   replies       718424 non-null  int64 
+dtypes: int64(2), object(2)
+memory usage: 27.4+ MB
+
+veri.drop(41587, inplace=True)
+veri = veri.reset_index().drop('index',axis=1)
+veri.likes = veri.likes.astype(int)
+veri.replies = veri.replies.astype(int)
+
+veri.head()
+
+video_id	comment_text	likes	replies
+0	jt2OHQh0HoQ	It's more accurate to call it the M+ (1000) be...	0	0
+1	jt2OHQh0HoQ	To be there with a samsung phone\n😂😂😂	1	0
+2	jt2OHQh0HoQ	Thank gosh, a place I can watch it without hav...	0	0
+3	jt2OHQh0HoQ	What happened to the home button on the iPhone...	0	0
+4	jt2OHQh0HoQ	Power is the disease.  Care is the cure.  Keep...	0	0
+
+####   Removing Punctuations, Numbers and Special Characters.
+veri['comment_text'] = veri['comment_text'].str.replace("[^a-zA-Z#]", " ")
+
+#### Removing Short Words.
+veri['comment_text'] = veri['comment_text'].apply(lambda x: ' '.join([w for w in x.split() if len(w)>3]))
+
+#### Changing the text to lower case.
+veri['comment_text'] = veri['comment_text'].apply(lambda x:x.lower())
+
+#### Tokenization
+tokenized_tweet = veri['comment_text'].apply(lambda x: x.split())
+tokenized_tweet.head()
+
+0    [more, accurate, call, because, price, closer,...
+1                        [there, with, samsung, phone]
+2    [thank, gosh, place, watch, without, having, s...
+3    [what, happened, home, button, iphone, cough, ...
+4    [power, disease, care, cure, keep, caring, you...
+Name: comment_text, dtype: object
+
+#### Lemmatization
+
+from nltk.stem import WordNetLemmatizer
+from nltk.corpus import stopwords
+import nltk
+nltk.download('wordnet')
+nltk.download('omw-1.4')
+
+wnl = WordNetLemmatizer()
+
+tokenized_tweet.apply(lambda x: [wnl.lemmatize(i) for i in x if i not in set(stopwords.words('english'))]) 
+tokenized_tweet.head()
+
+0    [more, accurate, call, because, price, closer,...
+1                        [there, with, samsung, phone]
+2    [thank, gosh, place, watch, without, having, s...
+3    [what, happened, home, button, iphone, cough, ...
+4    [power, disease, care, cure, keep, caring, you...
+Name: comment_text, dtype: object
+
+for i in range(len(tokenized_tweet)):
+    tokenized_tweet[i] = ' '.join(tokenized_tweet[i])
+    
+veri['comment_text'] = tokenized_tweet
+
+#### Let's do the Sentiment Analysis on the US Comments Dataset
+
+import nltk
+nltk.download('vader_lexicon')
+
+from nltk.sentiment.vader import SentimentIntensityAnalyzer
+sia = SentimentIntensityAnalyzer()
+
+veri['Sentiment Scores'] = veri['comment_text'].apply(lambda x:sve(x)['compound'])
+
+veri.head()
+
+	video_id	comment_text	likes	replies	Sentiment Scores
+0	jt2OHQh0HoQ	more accurate call because price closer than c...	0	0	0.0000
+1	jt2OHQh0HoQ	there with samsung phone	1	0	0.0000
+2	jt2OHQh0HoQ	thank gosh place watch without having speed do...	0	0	0.6369
+3	jt2OHQh0HoQ	what happened home button iphone cough copying...	0	0	0.0000
+4	jt2OHQh0HoQ	power disease care cure keep caring yourself o...	0	0	0.8910
+
+#### Classifying the Sentiment scores as Positive, Negative and Neutral
+
+veri['Sentiment'] = veri['Sentiment Scores'].apply(lambda s : 'Positive' if s > 0 else ('Neutral' if s == 0 else 'Negative'))
+
+veri.head()
+video_id	comment_text	likes	replies	Sentiment Scores	Sentiment
+0	jt2OHQh0HoQ	more accurate call because price closer than c...	0	0	0.0000	Neutral
+1	jt2OHQh0HoQ	there with samsung phone	1	0	0.0000	Neutral
+2	jt2OHQh0HoQ	thank gosh place watch without having speed do...	0	0	0.6369	Positive
+3	jt2OHQh0HoQ	what happened home button iphone cough copying...	0	0	0.0000	Neutral
+4	jt2OHQh0HoQ	power disease care cure keep caring yourself o...	0	0	0.8910	Positive
+
+veri.Sentiment.value_counts()
+Positive    331817
+Neutral     267098
+Negative    119508
+Name: Sentiment, dtype: int64
+
+videos = []
+for i in range(0,veri.video_id.nunique()):
+    a = veri[(veri.video_id == veri.video_id.unique()[i]) & (veri.Sentiment == 'Positive')].count()[0]
+    b = veri[veri.video_id == veri.video_id.unique()[i]]['Sentiment'].value_counts().sum()
+    Percentage = (a/b)*100
+    videos.append(round(Percentage,2))
+    
