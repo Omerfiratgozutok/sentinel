@@ -180,3 +180,10 @@ for i in range(0,veri.video_id.nunique()):
     Percentage = (a/b)*100
     videos.append(round(Percentage,2))
     
+#### Making a dataframe of the videos with their Positive Percentages.
+
+Positivity = pd.DataFrame(videos,veri.video_id.unique()).reset_index()
+Positivity.columns = ['video_id','Positive Percentage']
+Positivity.head()
+
+
